@@ -134,6 +134,13 @@ class EvalRealConfig:
 
     rename_map: dict[str, str] = field(default_factory=dict)
 
+    # ipc parameters
+    ipc: bool = False
+    task: str = "do nothing"
+    force_predict: bool = False
+    policy_url: str = "http://localhost:8000"
+    init_pose: np.ndarray | None = None
+
     def __post_init__(self):
         # HACK: We parse again the cli args here to get the pretrained path if there was one.
         policy_path = parser.get_path_arg("policy")

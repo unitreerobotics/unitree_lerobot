@@ -147,7 +147,7 @@ def eval_policy(
                 loop_start_time = time.perf_counter()
 
                 # 1. Get Observations
-                observation, current_arm_q = process_images_and_observations(
+                observation, current_arm_q, _ = process_images_and_observations(
                     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
                 )
                 left_ee_state = right_ee_state = np.array([])

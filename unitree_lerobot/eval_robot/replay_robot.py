@@ -101,7 +101,7 @@ def replay_main(cfg: EvalRealConfig):
                     ee_shared_mem["right"].value = to_scalar(right_ee_action)
 
             if cfg.visualization:
-                observation, current_arm_q = process_images_and_observations(
+                observation, current_arm_q, _ = process_images_and_observations(
                     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
                 )
                 state = np.concatenate((current_arm_q, left_ee_state, right_ee_state))

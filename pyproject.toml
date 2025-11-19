@@ -20,7 +20,8 @@ dependencies = [
     "matplotlib>=3.9.0",
     "meshcat==0.3.2",
     # "unitree_sdk2py @ git+https://github.com/unitreerobotics/unitree_sdk2_python.git@master",
-    "logging_mp"
+    "logging_mp",
+    "sshkeyboard",
 ]
 
 [tool.setuptools]
@@ -36,10 +37,15 @@ show-fixes = true
 # [tool.ruff.lint]
 # select = ["E4", "E7", "E9", "F", "I", "N", "B", "C4", "SIM"]
 # ignore = ["N801"]
-
 [tool.ruff.lint.per-file-ignores]
 "constants.py" = ["N815"]
 
+
+[tool.typos.default.extend-words]
+repid = "repid"
+
 [tool.bandit]
-exclude_dirs = []
+exclude_dirs = ["test", "test/test.py", "unitree_lerobot/eval_robot/utils/ipc.py", "unitree_lerobot/eval_robot/eval_g1_ipc.py"]
 skips = ["B101", "B311", "B404", "B603", "B615"]
+# exclude = []
+recursive = true

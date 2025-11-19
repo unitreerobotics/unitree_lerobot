@@ -4,6 +4,7 @@ import numpy as np
 import argparse
 import threading
 import torch
+import cv2
 from unitree_lerobot.eval_robot.image_server.image_client import ImageClient
 from unitree_lerobot.eval_robot.robot_control.robot_arm import (
     G1_29_ArmController,
@@ -237,26 +238,50 @@ def setup_robot_interface(args: argparse.Namespace) -> dict[str, Any]:
 def process_images_and_observations(
     tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
 ):
-    """Processes images and generates observations."""
-    current_tv_image = tv_img_array.copy()
-    current_wrist_image = wrist_img_array.copy() if has_wrist_cam else None
+    status = {"image_ok": False, "arm_ok": False}
+    try:
+        """Processes images and generates observations."""
+        current_tv_image = tv_img_array.copy()
+        current_wrist_image = wrist_img_array.copy() if has_wrist_cam else None
 
-    left_top_cam = current_tv_image[:, : tv_img_shape[1] // 2] if is_binocular else current_tv_image
-    right_top_cam = current_tv_image[:, tv_img_shape[1] // 2 :] if is_binocular else None
+        left_top_cam = current_tv_image[:, : tv_img_shape[1] // 2] if is_binocular else current_tv_image
+        right_top_cam = current_tv_image[:, tv_img_shape[1] // 2 :] if is_binocular else None
 
-    left_wrist_cam = right_wrist_cam = None
-    if has_wrist_cam and current_wrist_image is not None:
-        left_wrist_cam = current_wrist_image[:, : wrist_img_shape[1] // 2]
-        right_wrist_cam = current_wrist_image[:, wrist_img_shape[1] // 2 :]
-    observation = {
-        "observation.images.cam_left_high": torch.from_numpy(left_top_cam),
-        "observation.images.cam_right_high": torch.from_numpy(right_top_cam) if is_binocular else None,
-        "observation.images.cam_left_wrist": torch.from_numpy(left_wrist_cam) if has_wrist_cam else None,
-        "observation.images.cam_right_wrist": torch.from_numpy(right_wrist_cam) if has_wrist_cam else None,
-    }
-    current_arm_q = arm_ctrl.get_current_dual_arm_q()
+        left_wrist_cam = right_wrist_cam = None
+        if has_wrist_cam and current_wrist_image is not None:
+            left_wrist_cam = current_wrist_image[:, : wrist_img_shape[1] // 2]
+            right_wrist_cam = current_wrist_image[:, wrist_img_shape[1] // 2 :]
+        observation = {
+            "observation.images.cam_left_high": torch.from_numpy(cv2.cvtColor(left_top_cam, cv2.COLOR_BGR2RGB)),
+            "observation.images.cam_right_high": torch.from_numpy(cv2.cvtColor(right_top_cam, cv2.COLOR_BGR2RGB))
+            if is_binocular
+            else None,
+            "observation.images.cam_left_wrist": torch.from_numpy(cv2.cvtColor(left_wrist_cam, cv2.COLOR_BGR2RGB))
+            if has_wrist_cam
+            else None,
+            "observation.images.cam_right_wrist": torch.from_numpy(cv2.cvtColor(right_wrist_cam, cv2.COLOR_BGR2RGB))
+            if has_wrist_cam
+            else None,
+        }
 
-    return observation, current_arm_q
+        status["image_ok"] = True
+
+    except Exception as e:
+        logger_mp.error(f"[process_images_and_observations] Failed to process images: {e}")
+        observation = {
+            "observation.images.cam_left_high": None,
+            "observation.images.cam_right_high": None,
+            "observation.images.cam_left_wrist": None,
+            "observation.images.cam_right_wrist": None,
+        }
+    try:
+        current_arm_q = arm_ctrl.get_current_dual_arm_q()
+        status["arm_ok"] = True
+    except Exception as e:
+        logger_mp.error(f"[process_images_and_observations] Failed to get arm state: {e}")
+        current_arm_q = None
+
+    return observation, current_arm_q, status
 
 
 def publish_reset_category(category: int, publisher):  # Scene Reset signal
