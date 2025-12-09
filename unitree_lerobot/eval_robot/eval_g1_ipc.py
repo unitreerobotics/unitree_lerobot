@@ -145,21 +145,22 @@ def execute_action(
     arm_ctrl,
     ee_shared_mem=None,
 ):
-    arm_action = action_np[:arm_dof]
-    tau = arm_ik.solve_tau(arm_action)
-    arm_ctrl.ctrl_dual_arm(arm_action, tau)
+    pass
+    # arm_action = action_np[:arm_dof]
+    # tau = arm_ik.solve_tau(arm_action)
+    # arm_ctrl.ctrl_dual_arm(arm_action, tau)
 
-    if ee_shared_mem is not None and ee_dof > 0 and np.any(action_np[arm_dof:] != 0.0):
-        ee_action_start_idx = arm_dof
-        left_ee_action = action_np[ee_action_start_idx : ee_action_start_idx + ee_dof]
-        right_ee_action = action_np[ee_action_start_idx + ee_dof : ee_action_start_idx + 2 * ee_dof]
+    # if ee_shared_mem is not None and ee_dof > 0 and np.any(action_np[arm_dof:] != 0.0):
+    #     ee_action_start_idx = arm_dof
+    #     left_ee_action = action_np[ee_action_start_idx : ee_action_start_idx + ee_dof]
+    #     right_ee_action = action_np[ee_action_start_idx + ee_dof : ee_action_start_idx + 2 * ee_dof]
 
-        if isinstance(ee_shared_mem["left"], SynchronizedArray):
-            ee_shared_mem["left"][:] = to_list(left_ee_action)
-            ee_shared_mem["right"][:] = to_list(right_ee_action)
-        elif hasattr(ee_shared_mem["left"], "value") and hasattr(ee_shared_mem["right"], "value"):
-            ee_shared_mem["left"].value = to_scalar(left_ee_action)
-            ee_shared_mem["right"].value = to_scalar(right_ee_action)
+    #     if isinstance(ee_shared_mem["left"], SynchronizedArray):
+    #         ee_shared_mem["left"][:] = to_list(left_ee_action)
+    #         ee_shared_mem["right"][:] = to_list(right_ee_action)
+    #     elif hasattr(ee_shared_mem["left"], "value") and hasattr(ee_shared_mem["right"], "value"):
+    #         ee_shared_mem["left"].value = to_scalar(left_ee_action)
+    #         ee_shared_mem["right"].value = to_scalar(right_ee_action)
 
 
 @parser.wrap()
@@ -169,6 +170,7 @@ def eval_main(cfg: EvalRealConfig):
         logger_mp.info(cfg)
 
         policy = ADBRobotServeClient(url=cfg.policy_url, task=cfg.task, force_predict=cfg.force_predict)
+        logger_mp.info("Initializing robot to starting pose...")
 
         # --- Setup Phase ---
         image_info = setup_image_client(cfg)

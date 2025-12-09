@@ -64,29 +64,15 @@ class IPC_Server:
         self._data_loop_thread = None
         self._hb_loop_thread = None
 
-        rd = os.environ.get("XDG_RUNTIME_DIR") or "/tmp"
         self.ctx = zmq.Context.instance()
-        # data IPC (REQ/REP): required
-        self.data_ipc = os.path.join(rd, f"xr-teleoperate-data-{os.getuid()}.ipc")
         self.rep_socket = self.ctx.socket(zmq.REP)
-        try:
-            if os.path.exists(self.data_ipc):
-                os.unlink(self.data_ipc)  # remove stale IPC file
-        except OSError:
-            pass
-        self.rep_socket.bind(f"ipc://{self.data_ipc}")
-        logger_mp.info(f"[IPC_Server] Listening to Data at ipc://{self.data_ipc}")
+        self.rep_socket.bind("ipc://@xr_teleoperate_data.ipc")
+        logger_mp.info("[IPC_Server] Listening to Data at ipc://@xr_teleoperate_data.ipc")
 
         # heartbeat IPC (PUB/SUB)
-        self.hb_ipc = os.path.join(rd, f"xr-teleoperate-hb-{os.getuid()}.ipc")
         self.pub_socket = self.ctx.socket(zmq.PUB)
-        try:
-            if os.path.exists(self.hb_ipc):
-                os.unlink(self.hb_ipc)  # remove stale IPC file
-        except OSError:
-            pass
-        self.pub_socket.bind(f"ipc://{self.hb_ipc}")
-        logger_mp.info(f"[IPC_Server] Publishing HeartBeat at ipc://{self.hb_ipc}")
+        self.pub_socket.bind("ipc://@xr_teleoperate_hb.ipc")
+        logger_mp.info("[IPC_Server] Publishing HeartBeat at ipc://@xr_teleoperate_hb.ipc")
 
     def _data_loop(self):
         """

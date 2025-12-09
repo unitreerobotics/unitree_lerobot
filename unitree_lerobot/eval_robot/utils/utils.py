@@ -114,7 +114,7 @@ def to_scalar(x):
 
 @dataclass
 class EvalRealConfig:
-    repo_id: str
+    repo_id: str | None = None
     policy: PreTrainedConfig | None = None
 
     root: str = ""
@@ -139,7 +139,7 @@ class EvalRealConfig:
     task: str = "do nothing"
     force_predict: bool = False
     policy_url: str = "http://localhost:8000"
-    init_pose: np.ndarray | None = None
+    init_pose: list | None = None
 
     def __post_init__(self):
         # HACK: We parse again the cli args here to get the pretrained path if there was one.
