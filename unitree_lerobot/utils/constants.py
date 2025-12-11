@@ -268,6 +268,64 @@ G1_INSPIRE_CONFIG = RobotConfig(
 )
 
 
+G1_INSPIRE_HEADONLY_CONFIG = RobotConfig(
+    motors=[
+        "kLeftShoulderPitch",
+        "kLeftShoulderRoll",
+        "kLeftShoulderYaw",
+        "kLeftElbow",
+        "kLeftWristRoll",
+        "kLeftWristPitch",
+        "kLeftWristYaw",
+        "kRightShoulderPitch",
+        "kRightShoulderRoll",
+        "kRightShoulderYaw",
+        "kRightElbow",
+        "kRightWristRoll",
+        "kRightWristPitch",
+        "kRightWristYaw",
+        "kLeftHandPinky",
+        "kLeftHandRing",
+        "kLeftHandMiddle",
+        "kLeftHandIndex",
+        "kLeftHandThumbBend",
+        "kLeftHandThumbRotation",
+        "kRightHandPinky",
+        "kRightHandRing",
+        "kRightHandMiddle",
+        "kRightHandIndex",
+        "kRightHandThumbBend",
+        "kRightHandThumbRotation",
+    ],
+    # 这里只保留一个相机：用 cam_left_high 当作你的头部相机名字
+    cameras=[
+        "cam_left_high",
+    ],
+    # 你的 data.json 里只有 "color_0"，所以只映射这一路
+    camera_to_image_key={
+        "color_0": "cam_left_high",
+        # 下面这些在当前数据里没有，就不要写：
+        # "color_1": "cam_right_high",
+        # "color_2": "cam_left_wrist",
+        # "color_3": "cam_right_wrist",
+    },
+    # 状态和动作字段保持不变（取自 JSON 里的结构）
+    json_state_data_name=[
+        "left_arm.qpos",
+        "right_arm.qpos",
+        "left_ee.qpos",
+        "right_ee.qpos",
+    ],
+    json_action_data_name=[
+        "left_arm.qpos",
+        "right_arm.qpos",
+        "left_ee.qpos",
+        "right_ee.qpos",
+    ],
+)
+
+
+
 MOVEIBLE_LIFT_G1_DEX1_USEWAIST_CONFIG = RobotConfig(
     motors=[
         "kLeftShoulderPitch",
@@ -475,6 +533,9 @@ ROBOT_CONFIGS = {
     "Unitree_G1_Dex3": G1_DEX3_CONFIG,
     "Unitree_G1_Brainco": G1_BRAINCO_CONFIG,
     "Unitree_G1_Inspire": G1_INSPIRE_CONFIG,
+
+    "Unitree_G1_Inspire_HeadOnly": G1_INSPIRE_HEADONLY_CONFIG,  # 新增这一行
+
     "Unitree_G1_MoveibleLift_Dex1_UseWaist": MOVEIBLE_LIFT_G1_DEX1_USEWAIST_CONFIG,
     "Unitree_G1_MoveibleLift_Dex1_NoUseWaist": MOVEIBLE_LIFT_G1_DEX1_NOUSEWAIST_CONFIG,
     "Unitree_G1_Lift_Dex1_UseWaist": LIFT_G1_DEX1_USEWAIST_CONFIG,
