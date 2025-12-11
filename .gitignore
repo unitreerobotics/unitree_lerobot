@@ -10,3 +10,4 @@ cam_right_wrist.jpg
 cam_left_wrist.jpg
 data/
 ./data
+cam_config_client.yaml

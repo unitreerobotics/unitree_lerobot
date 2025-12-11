@@ -173,7 +173,7 @@ def eval_main(cfg: EvalRealConfig):
         logger_mp.info("Initializing robot to starting pose...")
 
         # --- Setup Phase ---
-        image_info = setup_image_client(cfg)
+        image_client, image_config = setup_image_client(cfg)
         robot_interface = setup_robot_interface(cfg)
 
         # fmt: off
@@ -229,9 +229,7 @@ def eval_main(cfg: EvalRealConfig):
             loop_start_time = time.perf_counter()
 
             # 1. Get Observations
-            observation, current_arm_q, robot_status = process_images_and_observations(
-                tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
-            )
+            observation, current_arm_q, _ = process_images_and_observations(image_client, image_config, arm_ctrl)
             try:
                 left_ee_state = right_ee_state = np.array([])
                 if cfg.ee:

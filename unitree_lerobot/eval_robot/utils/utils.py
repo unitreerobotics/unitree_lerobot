@@ -125,6 +125,9 @@ class EvalRealConfig:
     arm: str = "G1_29"  # G1_29, G1_23
     ee: str = "dex3"  # dex3, dex1, inspire1, brainco
 
+    # images erver
+    image_host: str = "192.168.123.164"
+
     # Mode flags
     motion: bool = False
     headless: bool = False

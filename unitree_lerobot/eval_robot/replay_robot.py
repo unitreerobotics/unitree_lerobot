@@ -33,7 +33,7 @@ def replay_main(cfg: EvalRealConfig):
     if cfg.visualization:
         rerun_logger = RerunLogger()
 
-    image_info = setup_image_client(cfg)
+    image_client, image_config = setup_image_client(cfg)
     robot_interface = setup_robot_interface(cfg)
 
     """The main control and evaluation loop."""
@@ -41,18 +41,6 @@ def replay_main(cfg: EvalRealConfig):
     arm_ctrl, arm_ik, ee_shared_mem, arm_dof, ee_dof = (
         robot_interface[key] for key in ["arm_ctrl", "arm_ik", "ee_shared_mem", "arm_dof", "ee_dof"]
     )
-    tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam = (
-        image_info[key]
-        for key in [
-            "tv_img_array",
-            "wrist_img_array",
-            "tv_img_shape",
-            "wrist_img_shape",
-            "is_binocular",
-            "has_wrist_cam",
-        ]
-    )
-
     logger_mp.info(f"Starting evaluation loop at {cfg.frequency} Hz.")
 
     dataset = LeRobotDataset(repo_id=cfg.repo_id, root=cfg.root, episodes=[cfg.episodes])
@@ -101,17 +89,13 @@ def replay_main(cfg: EvalRealConfig):
                     ee_shared_mem["right"].value = to_scalar(right_ee_action)
 
             if cfg.visualization:
-                observation, current_arm_q, _ = process_images_and_observations(
-                    tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
-                )
+                observation, current_arm_q, _ = process_images_and_observations(image_client, image_config, arm_ctrl)
                 state = np.concatenate((current_arm_q, left_ee_state, right_ee_state))
 
                 visualization_data(idx, observation, state, action_np, rerun_logger)
 
             # Maintain frequency
             time.sleep(max(0, (1.0 / cfg.frequency) - (time.perf_counter() - loop_start_time)))
-
-    cleanup_resources(image_info)
 
 
 if __name__ == "__main__":

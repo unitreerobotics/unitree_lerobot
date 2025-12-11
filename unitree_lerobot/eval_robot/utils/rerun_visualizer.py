@@ -1,9 +1,9 @@
-import torch
 from datetime import datetime
 from typing import Any
 
 import rerun as rr
 import rerun.blueprint as rrb
+import torch
 
 
 class RerunLogger:
@@ -21,7 +21,7 @@ class RerunLogger:
         """Initializes the Rerun logger."""
         # Use a descriptive name for the Rerun recording
         rr.init(f"Dataset_Log_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
-        rr.spawn(memory_limit=memory_limit)
+        rr.spawn(port=9876, memory_limit=memory_limit)
 
         self.prefix = prefix
         self.blueprint_sent = False
@@ -145,13 +145,12 @@ class RerunLogger:
             state_tensor = step_data[self._state_key]
             entity_path = f"{self.prefix}state"
             for i, val in enumerate(state_tensor):
-                rr.log(f"{entity_path}/joint_{i}", rr.Scalar(val.item()))
-
+                rr.log(f"{entity_path}/joint_{i}", rr.Scalars(val.item()))
         if self._action_key in step_data:
             action_tensor = step_data[self._action_key]
             entity_path = f"{self.prefix}action"
             for i, val in enumerate(action_tensor):
-                rr.log(f"{entity_path}/joint_{i}", rr.Scalar(val.item()))
+                rr.log(f"{entity_path}/joint_{i}", rr.Scalars(val.item()))
 
 
 def visualization_data(idx, observation, state, action, online_logger):
@@ -163,4 +162,13 @@ def visualization_data(idx, observation, state, action, online_logger):
     for k, v in observation.items():
         if k not in ("index", "observation.state", "action"):
             item_data[k] = v
+    # print(item_data)
     online_logger.log_step(item_data)
+
+
+def flatten_images(obs: dict) -> dict:
+    flat = {}
+    if "images" in obs:
+        for k, v in obs["images"].items():
+            flat[f"observation.images.{k}"] = torch.from_numpy(v)
+    return flat

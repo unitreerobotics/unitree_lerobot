@@ -72,88 +72,10 @@ EE_CONFIG: dict[str, dict[str, Any]] = {
 def setup_image_client(args: argparse.Namespace) -> dict[str, Any]:
     """Initializes and starts the image client and shared memory."""
     # image client: img_config should be the same as the configuration in image_server.py (of Robot's development computing unit)
-    if getattr(args, "sim", False):
-        img_config = {
-            "fps": 30,
-            "head_camera_type": "opencv",
-            "head_camera_image_shape": [480, 640],  # Head camera resolution
-            "head_camera_id_numbers": [0],
-            "wrist_camera_type": "opencv",
-            "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
-            "wrist_camera_id_numbers": [2, 4],
-        }
-    else:
-        img_config = {
-            "fps": 30,
-            "head_camera_type": "opencv",
-            "head_camera_image_shape": [480, 1280],  # Head camera resolution
-            "head_camera_id_numbers": [0],
-            "wrist_camera_type": "opencv",
-            "wrist_camera_image_shape": [480, 640],  # Wrist camera resolution
-            "wrist_camera_id_numbers": [2, 4],
-        }
-
-    ASPECT_RATIO_THRESHOLD = 2.0  # If the aspect ratio exceeds this value, it is considered binocular
-    if len(img_config["head_camera_id_numbers"]) > 1 or (
-        img_config["head_camera_image_shape"][1] / img_config["head_camera_image_shape"][0] > ASPECT_RATIO_THRESHOLD
-    ):
-        BINOCULAR = True
-    else:
-        BINOCULAR = False
-    if "wrist_camera_type" in img_config:
-        WRIST = True
-    else:
-        WRIST = False
-
-    if BINOCULAR and not (
-        img_config["head_camera_image_shape"][1] / img_config["head_camera_image_shape"][0] > ASPECT_RATIO_THRESHOLD
-    ):
-        tv_img_shape = (img_config["head_camera_image_shape"][0], img_config["head_camera_image_shape"][1] * 2, 3)
-    else:
-        tv_img_shape = (img_config["head_camera_image_shape"][0], img_config["head_camera_image_shape"][1], 3)
-
-    tv_img_shm = shared_memory.SharedMemory(create=True, size=np.prod(tv_img_shape) * np.uint8().itemsize)
-    tv_img_array = np.ndarray(tv_img_shape, dtype=np.uint8, buffer=tv_img_shm.buf)
-
-    if WRIST and getattr(args, "sim", False):
-        wrist_img_shape = (img_config["wrist_camera_image_shape"][0], img_config["wrist_camera_image_shape"][1] * 2, 3)
-        wrist_img_shm = shared_memory.SharedMemory(create=True, size=np.prod(wrist_img_shape) * np.uint8().itemsize)
-        wrist_img_array = np.ndarray(wrist_img_shape, dtype=np.uint8, buffer=wrist_img_shm.buf)
-        img_client = ImageClient(
-            tv_img_shape=tv_img_shape,
-            tv_img_shm_name=tv_img_shm.name,
-            wrist_img_shape=wrist_img_shape,
-            wrist_img_shm_name=wrist_img_shm.name,
-            server_address="127.0.0.1",
-        )
-    elif WRIST and not getattr(args, "sim", False):
-        wrist_img_shape = (img_config["wrist_camera_image_shape"][0], img_config["wrist_camera_image_shape"][1] * 2, 3)
-        wrist_img_shm = shared_memory.SharedMemory(create=True, size=np.prod(wrist_img_shape) * np.uint8().itemsize)
-        wrist_img_array = np.ndarray(wrist_img_shape, dtype=np.uint8, buffer=wrist_img_shm.buf)
-        img_client = ImageClient(
-            tv_img_shape=tv_img_shape,
-            tv_img_shm_name=tv_img_shm.name,
-            wrist_img_shape=wrist_img_shape,
-            wrist_img_shm_name=wrist_img_shm.name,
-        )
-    else:
-        img_client = ImageClient(tv_img_shape=tv_img_shape, tv_img_shm_name=tv_img_shm.name)
-
-    has_wrist_cam = "wrist_camera_type" in img_config
-
-    image_receive_thread = threading.Thread(target=img_client.receive_process, daemon=True)
-    image_receive_thread.daemon = True
-    image_receive_thread.start()
-
-    return {
-        "tv_img_array": tv_img_array,
-        "wrist_img_array": wrist_img_array,
-        "tv_img_shape": tv_img_shape,
-        "wrist_img_shape": wrist_img_shape,
-        "is_binocular": BINOCULAR,
-        "has_wrist_cam": has_wrist_cam,
-        "shm_resources": [tv_img_shm, wrist_img_shm],
-    }
+    
+    image_client = ImageClient(host=args.image_host)
+    image_config = image_client.get_cam_config()
+    return image_client, image_config
 
 
 def _resolve_out_len(spec: dict[str, Any]) -> int:
@@ -235,34 +157,28 @@ def setup_robot_interface(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
-def process_images_and_observations(
-    tv_img_array, wrist_img_array, tv_img_shape, wrist_img_shape, is_binocular, has_wrist_cam, arm_ctrl
-):
+def process_images_and_observations(img_client, camera_config, arm_ctrl):
     status = {"image_ok": False, "arm_ok": False}
     try:
         """Processes images and generates observations."""
-        current_tv_image = tv_img_array.copy()
-        current_wrist_image = wrist_img_array.copy() if has_wrist_cam else None
+        observation = {}
+        def to_tensor_rgb(img):
+            return torch.from_numpy(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
 
-        left_top_cam = current_tv_image[:, : tv_img_shape[1] // 2] if is_binocular else current_tv_image
-        right_top_cam = current_tv_image[:, tv_img_shape[1] // 2 :] if is_binocular else None
+        if camera_config['head_camera']['enable_zmq']:
+            head_img, head_img_fps = img_client.get_head_frame()
+            if head_img is not None:
+                observation["observation.images.cam_left_high"] = to_tensor_rgb(head_img[:, :camera_config['head_camera']['image_shape'][1]//2])
+                observation["observation.images.cam_right_high"] = to_tensor_rgb(head_img[:, camera_config['head_camera']['image_shape'][1]//2:])
 
-        left_wrist_cam = right_wrist_cam = None
-        if has_wrist_cam and current_wrist_image is not None:
-            left_wrist_cam = current_wrist_image[:, : wrist_img_shape[1] // 2]
-            right_wrist_cam = current_wrist_image[:, wrist_img_shape[1] // 2 :]
-        observation = {
-            "observation.images.cam_left_high": torch.from_numpy(cv2.cvtColor(left_top_cam, cv2.COLOR_BGR2RGB)),
-            "observation.images.cam_right_high": torch.from_numpy(cv2.cvtColor(right_top_cam, cv2.COLOR_BGR2RGB))
-            if is_binocular
-            else None,
-            "observation.images.cam_left_wrist": torch.from_numpy(cv2.cvtColor(left_wrist_cam, cv2.COLOR_BGR2RGB))
-            if has_wrist_cam
-            else None,
-            "observation.images.cam_right_wrist": torch.from_numpy(cv2.cvtColor(right_wrist_cam, cv2.COLOR_BGR2RGB))
-            if has_wrist_cam
-            else None,
-        }
+        if camera_config['left_wrist_camera']['enable_zmq']:
+            left_wrist, _ = img_client.get_left_wrist_frame()
+            if left_wrist is not None:
+                observation["observation.images.cam_left_wrist"] = to_tensor_rgb(left_wrist)
+        if camera_config['right_wrist_camera']['enable_zmq']:
+            right_wrist, _ = img_client.get_right_wrist_frame()
+            if right_wrist is not None:
+                observation["observation.images.cam_right_wrist"] = to_tensor_rgb(right_wrist)
 
         status["image_ok"] = True
 
