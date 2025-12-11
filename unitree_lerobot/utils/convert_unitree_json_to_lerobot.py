@@ -222,16 +222,16 @@ def create_empty_dataset(
         "observation.state": {
             "dtype": "float32",
             "shape": (len(motors),),
-            "names": [
-                motors,
-            ],
+            "names": {
+                "motors": motors,      # ← 正确格式：dict，而不是 list
+            },
         },
         "action": {
             "dtype": "float32",
             "shape": (len(motors),),
-            "names": [
-                motors,
-            ],
+            "names": {
+                "motors": motors,      # ← 正确格式：dict，而不是 list
+             },
         },
     }
 
@@ -239,18 +239,18 @@ def create_empty_dataset(
         features["observation.velocity"] = {
             "dtype": "float32",
             "shape": (len(motors),),
-            "names": [
-                motors,
-            ],
+            "names": {
+                "motors": motors,      # ← 正确格式：dict，而不是 list
+            },
         }
 
     if has_effort:
         features["observation.effort"] = {
             "dtype": "float32",
             "shape": (len(motors),),
-            "names": [
-                motors,
-            ],
+            "names": {
+                "motors": motors,      # ← 正确格式：dict，而不是 list
+            },
         }
 
     for cam in cameras:
@@ -316,7 +316,7 @@ def populate_dataset(
 def json_to_lerobot(
     raw_dir: Path,
     repo_id: str,
-    robot_type: str,  # e.g., Unitree_Z1_Single, Unitree_Z1_Dual, Unitree_G1_Dex1, Unitree_G1_Dex3, Unitree_G1_Brainco, Unitree_G1_Inspire
+    robot_type: str,  # e.g., Unitree_Z1_Single, Unitree_Z1_Dual, Unitree_G1_Dex1, Unitree_G1_Dex3, Unitree_G1_Brainco, Unitree_G1_Inspire,Unitree_G1_Inspire_HeadOnly
     *,
     push_to_hub: bool = False,
     mode: Literal["video", "image"] = "video",
