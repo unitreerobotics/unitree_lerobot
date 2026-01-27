@@ -1,4 +1,9 @@
 <div align="center">
+<div style="border: 2px solid #a71616ff; background-color: #7f6921ff; padding: 10px; border-radius: 5px;">
+<strong>Warning:</strong> Not Finished!
+</div>
+
+<div align="center">
   <h1 align="center"> unitree_IL_lerobot </h1>
   <h3 align="center"> Unitree Robotics </h3>
   <p align="center">
